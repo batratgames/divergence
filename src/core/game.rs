@@ -1,15 +1,50 @@
 use glium;
-use glium::{ glutin, Surface };
+use glium::glutin;
+//use super::super::graphics::renderer::vertex::Vertex;
 
-use super::vertex::Vertex;
+pub trait Game {
+    fn run(&'static self, title: &str, width: f32, height: f32) {
+        let event_loop = glutin::event_loop::EventLoop::new();
+        let wb = glutin::window::WindowBuilder::new()
+            .with_inner_size(glium::glutin::dpi::LogicalSize::new(width, height))
+            .with_title(title);
+        let cb = glutin::ContextBuilder::new();
+        let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-pub struct Window<'a> {
-    title: &'a str,
-    dimensions: (f32, f32),
-    event_loop: glutin::event_loop::EventLoop,
-    display: glium::Display,
+        event_loop.run(move |ev, _, control_flow| {
+            // Game logic
+            self.update();
+
+            // Renderer
+            let mut target = display.draw();
+
+            self.render(&mut target);
+
+            target.finish().unwrap();
+    
+            let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
+            
+            *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
+            
+            match ev {
+                glutin::event::Event::WindowEvent { event, .. } => match event {
+                    glutin::event::WindowEvent::CloseRequested => {
+                        *control_flow = glutin::event_loop::ControlFlow::Exit;
+                        return;
+                    },
+                    _ => return,
+                },
+                _ => (),
+            }
+        });
+    }
+
+    fn update(&self);
+
+    fn render(&self, frame: &mut glium::Frame);
 }
 
+/*
 impl<'a> Window<'a> {
     fn new(title: &'a str, dimensions: (f32, f32)) -> Window<'a> {
         let mut event_loop = glutin::event_loop::EventLoop::new();
@@ -83,3 +118,4 @@ impl<'a> Window<'a> {
         });
     }
 }
+*/
