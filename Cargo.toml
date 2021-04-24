@@ -8,6 +8,4 @@ edition = "2018"
 
 [dependencies]
 glium = "0.29.1"
-#gfx = "0.18.2"
-#glutin = "0.26.0"
-#gfx_window_glutin = "0.31.0"
+rodio = "0.13.1"
