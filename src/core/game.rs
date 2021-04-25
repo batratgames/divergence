@@ -3,7 +3,7 @@ use glium::glutin;
 //use super::super::graphics::renderer::vertex::Vertex;
 
 pub trait Game {
-    fn run(&'static self, title: &str, width: f32, height: f32) {
+    fn run(&self, title: &str, width: f32, height: f32) {
         let event_loop = glutin::event_loop::EventLoop::new();
         let wb = glutin::window::WindowBuilder::new()
             .with_inner_size(glium::glutin::dpi::LogicalSize::new(width, height))
