@@ -1,7 +1,7 @@
+/*
 use glium;
 use glium::glutin;
 //use super::super::graphics::renderer::vertex::Vertex;
-
 pub trait Game {
     fn run(&self, title: &str, width: f32, height: f32) {
         let event_loop = glutin::event_loop::EventLoop::new();
@@ -43,7 +43,7 @@ pub trait Game {
 
     fn render(&self, frame: &mut glium::Frame);
 }
-
+*/
 /*
 impl<'a> Window<'a> {
     fn new(title: &'a str, dimensions: (f32, f32)) -> Window<'a> {
