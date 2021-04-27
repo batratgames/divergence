@@ -8,15 +8,12 @@ pub struct Vector2D {
 }
 
 impl Vector2D {
-    pub fn new() -> Vector2D {
-        Vector2D {
-            x: 0.0,
-            y: 0.0,
-        }
-    }
-
     pub fn norm(&self) -> f32 {
         (self.x * self.x + self.y * self.y).powf(1.0 / 2.0)
+    }
+
+    pub fn sum(&self) -> f32 {
+        self.x + self.y
     }
 
     pub fn x(&self) -> f32 {
@@ -143,33 +140,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new() {
-        let test = Vector2D::new();
-        let correct = Vector2D { x: 0.0, y: 0.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_float() {
-        let test = Vector2D::from((5.0, 4.0));
-        let correct = Vector2D { x: 5.0, y: 4.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_integer() {
-        let test = Vector2D::from((5, 4));
-        let correct = Vector2D { x: 5.0, y: 4.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
     fn norm() {
         let test = Vector2D::from((3, 4)).norm();
         let correct = 5.0;
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn sum() {
+        let test = Vector2D::from((3,4)).sum();
+        let correct = 7.0;
 
         assert_eq!(test, correct);
     }
@@ -250,6 +231,22 @@ mod tests {
     fn mul_float_right() {
         let test = Vector2D::from((5.0, 4.0)) * 5.0;
         let correct = Vector2D::from((25, 20));
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_float() {
+        let test = Vector2D::from((5.0, 4.0));
+        let correct = Vector2D { x: 5.0, y: 4.0 };
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_integer() {
+        let test = Vector2D::from((5, 4));
+        let correct = Vector2D { x: 5.0, y: 4.0 };
 
         assert_eq!(test, correct);
     }

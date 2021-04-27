@@ -1,6 +1,6 @@
 use std::fmt;
 use std::cmp::{ PartialEq, Eq };
-use std::ops::{ Add, Sub, Mul };
+use std::ops::{ Add, Sub, Mul, Rem };
 
 pub struct Vector3D {
     x: f32,
@@ -9,16 +9,22 @@ pub struct Vector3D {
 }
 
 impl Vector3D {
-    pub fn new() -> Vector3D {
-        Vector3D {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0,
-        }
-    }
-
     pub fn norm(&self) -> f32 {
         (self.x * self.x + self.y * self.y + self.z * self.z).powf(1.0 / 2.0)
+    }
+
+    pub fn cross(&self, rhs: Vector3D) -> Vector3D {
+        Vector3D::from(
+            (
+                self.y() * rhs.z() - self.z() * rhs.y(),
+                self.z() * rhs.x() - self.x() * rhs.z(),
+                self.x() * rhs.y() - self.y() * rhs.x(),
+            )
+        )
+    }
+
+    pub fn sum(&self) -> f32 {
+        self.x + self.y + self.z
     }
 
     pub fn x(&self) -> f32 {
@@ -122,6 +128,14 @@ impl Mul<i32> for Vector3D {
     }
 }
 
+impl Rem for Vector3D {
+    type Output = Self;
+
+    fn rem(self, rhs: Vector3D) -> Self::Output {
+        self.cross(rhs)
+    }
+}
+
 impl PartialEq for Vector3D {
     fn eq(&self, rhs: &Self) -> bool {
         self.x == rhs.x && self.y == rhs.y && self.z == rhs.z
@@ -167,33 +181,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new() {
-        let test = Vector3D::new();
-        let correct = Vector3D { x: 0.0, y: 0.0, z: 0.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_float() {
-        let test = Vector3D::from((5.0, 4.0, 3.0));
-        let correct = Vector3D { x: 5.0, y: 4.0, z: 3.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_integer() {
-        let test = Vector3D::from((5, 4, 3));
-        let correct = Vector3D { x: 5.0, y: 4.0, z: 3.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
     fn norm() {
         let test = Vector3D::from((5, 4, 3)).norm();
         let correct = 50_f32.sqrt();
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn cross() {
+        let test = Vector3D::from((1, 2, 3)).cross(Vector3D::from((3, 2, 1)));
+        let correct = Vector3D::from((-4, 8, -4));
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn sum() {
+        let test = Vector3D::from((1, 2, 3)).sum();
+        let correct = 6.0;
 
         assert_eq!(test, correct);
     }
@@ -306,6 +312,30 @@ mod tests {
     fn mul_float_right() {
         let test = Vector3D::from((5.0, 4.0, 3.0)) * 5.0;
         let correct = Vector3D::from((25, 20, 15));
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn rem() {
+        let test = Vector3D::from((1, 2, 3)) % Vector3D::from((3, 2, 1));
+        let correct = Vector3D::from((-4, 8, -4));
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_float() {
+        let test = Vector3D::from((5.0, 4.0, 3.0));
+        let correct = Vector3D { x: 5.0, y: 4.0, z: 3.0 };
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_integer() {
+        let test = Vector3D::from((5, 4, 3));
+        let correct = Vector3D { x: 5.0, y: 4.0, z: 3.0 };
 
         assert_eq!(test, correct);
     }
