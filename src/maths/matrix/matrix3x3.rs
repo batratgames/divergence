@@ -1,8 +1,10 @@
 use std::fmt;
 use std::cmp::{ PartialEq, Eq };
 use std::ops::{ Add, Sub, Mul, Index };
-use crate::maths::Vector3D;
+use crate::maths::{ Vector3D, Matrix2x2 };
+use super::InverseMatrixError;
 
+#[derive(Copy, Clone)]
 pub struct Matrix3x3 {
     data: [f32; 9]
 }
@@ -52,16 +54,67 @@ impl Matrix3x3 {
         }
     }
 
+    pub fn minor(&self, pos: (usize, usize)) -> Matrix2x2 {
+        let mut data: [f32; 4] = [ 0.0, 0.0, 0.0, 0.0 ];
+
+        let mut idx = 0;
+
+        for i in 0..3 {
+            if i == pos.0 {
+                continue;
+            }
+
+            for j in 0..3 {
+                if j == pos.1 {
+                    continue;
+                }
+
+                data[idx] = self[(i, j)];
+                idx += 1;
+            }
+        }
+
+        Matrix2x2::from(data)
+    }
+
+    pub fn cofactor(&self) -> Matrix3x3 {
+        let mut data: [f32; 9] = [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ];
+
+        for i in 0..3 {
+            for j in 0..3 {
+                data[i * 3 + j] = (-1_f32).powf((i+j) as f32) * self.minor((i, j)).determinant();
+            }
+        }
+
+        Matrix3x3::from(data)
+    }
+
+    pub fn adjugate(&self) -> Matrix3x3 {
+        self.cofactor().transpose()
+    }
+
     pub fn determinant(&self) -> f32 {
-        self.data[0] * self.data[3] - self.data[1] * self.data[2]
+        self[(0, 0)] * self.minor((0, 0)).determinant() -
+        self[(0, 1)] * self.minor((0, 1)).determinant() +
+        self[(0, 2)] * self.minor((0, 2)).determinant()
+    }
+
+    pub fn inverse(&self) -> Result<Matrix3x3, InverseMatrixError> {
+        let determinant = self.determinant();
+
+        if determinant == 0.0 {
+            return Err(InverseMatrixError("Matrix has no inverse"));
+        }
+
+        Ok((1.0 / determinant) * self.adjugate())
     }
 
     pub fn col(&self, i: usize) -> Vector3D {
-        Vector3D::from((self.data[i], self.data[i + 2], self.data[i + 6]))
+        Vector3D::from((self[(0, i)], self[(1, i)], self[(2, i)]))
     }
 
     pub fn row(&self, i: usize) -> Vector3D {
-        Vector3D::from((self.data[3 * i], self.data[3 * i + 1], self.data[3 * i + 2]))
+        Vector3D::from((self[(i, 0)], self[(i, 1)], self[(i, 2)]))
     }
 }
 
@@ -69,13 +122,19 @@ impl Add for Matrix3x3 {
     type Output = Matrix3x3;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Matrix3x3 {
-            data: [
-                self.data[0] + rhs.data[0], self.data[1] + rhs.data[1], 0.0,
-                self.data[2] + rhs.data[2], self.data[3] + rhs.data[3], 0.0,
-                0.0, 0.0, 0.0,
-            ]
+        let mut data = [
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+        ];
+        
+        for i in 0..3 {
+            for j in 0..3 {
+                data[i * 3 + j] = self[(i, j)] + rhs[(i, j)];
+            }
         }
+        
+        Matrix3x3::from(data)
     }
 }
 
@@ -83,13 +142,19 @@ impl Sub for Matrix3x3 {
     type Output = Matrix3x3;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Matrix3x3 {
-            data: [
-                self.data[0] - rhs.data[0], self.data[1] - rhs.data[1], 0.0,
-                self.data[2] - rhs.data[2], self.data[3] - rhs.data[3], 0.0,
-                0.0, 0.0, 0.0,
-            ]
+        let mut data = [
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+        ];
+        
+        for i in 0..3 {
+            for j in 0..3 {
+                data[i * 3 + j] = self[(i, j)] - rhs[(i, j)];
+            }
         }
+        
+        Matrix3x3::from(data)
     }
 }
 
@@ -97,13 +162,7 @@ impl Mul for Matrix3x3 {
     type Output = Matrix3x3;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Matrix3x3 { 
-            data: [
-                self.data[0] * rhs.data[0] + self.data[1] * rhs.data[2], self.data[0] * rhs.data[1] + self.data[1] * rhs.data[3], 0.0,
-                self.data[2] * rhs.data[0] + self.data[3] * rhs.data[2], self.data[2] * rhs.data[1] + self.data[3] * rhs.data[3], 0.0,
-                0.0, 0.0, 0.0,
-            ]
-        }
+        Matrix3x3::from((self * rhs.col(0), self * rhs.col(1), self * rhs.col(2)))
     }
 }
 
@@ -111,13 +170,19 @@ impl Mul<Matrix3x3> for i32 {
     type Output = Matrix3x3;
 
     fn mul(self, rhs: Matrix3x3) -> Self::Output {
-        Matrix3x3 {
-            data: [
-                (self as f32) * rhs.data[0], (self as f32) * rhs.data[1], 0.0, 
-                (self as f32) * rhs.data[2], (self as f32) * rhs.data[3], 0.0,
-                0.0, 0.0, 0.0,
-            ]
+        let mut data = [
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+        ];
+        
+        for i in 0..3 {
+            for j in 0..3 {
+                data[i * 3 + j] = rhs[(i, j)] * (self as f32);
+            }
         }
+        
+        Matrix3x3::from(data)
     }
 }
 
@@ -133,13 +198,19 @@ impl Mul<Matrix3x3> for f32 {
     type Output = Matrix3x3;
 
     fn mul(self, rhs: Matrix3x3) -> Self::Output {
-        Matrix3x3 {
-            data: [
-                self * rhs.data[0], self * rhs.data[1], 0.0,
-                self * rhs.data[2], self * rhs.data[3], 0.0,
-                0.0, 0.0, 0.0,
-            ]
+        let mut data = [
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0,
+        ];
+        
+        for i in 0..3 {
+            for j in 0..3 {
+                data[i * 3 + j] = rhs[(i, j)] * self;
+            }
         }
+        
+        Matrix3x3::from(data)
     }
 }
 
@@ -155,16 +226,19 @@ impl Mul<Vector3D> for Matrix3x3 {
     type Output = Vector3D;
 
     fn mul(self, rhs: Vector3D) -> Self::Output {
-        rhs.x() * self.col(0) + rhs.y() * self.col(1)
+        rhs.x() * self.col(0) + rhs.y() * self.col(1) + rhs.z() * self.col(2)
     }
 }
 
 impl PartialEq for Matrix3x3 {
     fn eq(&self, rhs: &Self) -> bool {
-        self.data[0] == rhs.data[0] &&
-        self.data[1] == rhs.data[1] &&
-        self.data[2] == rhs.data[2] &&
-        self.data[3] == rhs.data[3]
+        for i in 0..9 {
+            if self.data[i] != rhs.data[i] {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -173,7 +247,11 @@ impl Eq for Matrix3x3 {}
 impl From<[i32; 9]> for Matrix3x3 {
     fn from(data: [i32; 9]) -> Matrix3x3 {
         Matrix3x3 {
-            data: [data[0] as f32, data[1] as f32, data[2] as f32, data[3] as f32, 0.0, 0.0, 0.0, 0.0, 0.0],
+            data: [
+                data[0] as f32, data[1] as f32, data[2] as f32,
+                data[3] as f32, data[4] as f32, data[5] as f32,
+                data[6] as f32, data[7] as f32, data[8] as f32,
+            ],
         }
     }
 }
@@ -189,7 +267,7 @@ impl From<[f32; 9]> for Matrix3x3 {
 impl From<(Vector3D, Vector3D, Vector3D)> for Matrix3x3 {
     fn from(input: (Vector3D, Vector3D, Vector3D)) -> Matrix3x3 {
         Matrix3x3 {
-            data: [ input.0.x(), input.1.x(), input.0.y(), input.1.y(), 0.0, 0.0, 0.0, 0.0, 0.0 ],
+            data: [ input.0.x(), input.1.x(), input.2.x(), input.0.y(), input.1.y(), input.2.y(), input.0.z(), input.1.z(), input.2.z() ],
         }
     }
 }
@@ -198,7 +276,7 @@ impl Index<(usize, usize)> for Matrix3x3 {
     type Output = f32;
 
     fn index(&self, idx: (usize, usize)) -> &Self::Output {
-        &self.data[idx.1 + 2 * idx.0]
+        &self.data[idx.1 + 3 * idx.0]
     }
 }
 
@@ -296,55 +374,61 @@ mod tests {
     }
 
     #[test]
-    fn from_float() {
+    fn minor() {
         let test = Matrix3x3::from(
             [
-                1.0, 2.0, 3.0, 
-                4.0, 5.0, 6.0,
-                7.0, 8.0, 9.0,
-            ]
-        );
-        
-        let correct = Matrix3x3 {
-            data: [
-                1.0, 2.0, 3.0,
-                4.0, 5.0, 6.0,
-                7.0, 8.0, 9.0,
-            ]
-        };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_integer() {
-        let test = Matrix3x3::from(
-            [
-                1, 2, 3, 
+                1, 2, 3,
                 4, 5, 6,
                 7, 8, 9,
             ]
-        );
+        ).minor((1, 1));
 
-        let correct = Matrix3x3 {
-            data: [
-                1.0, 2.0, 3.0,
-                4.0, 5.0, 6.0,
-                7.0, 8.0, 9.0,
+        let correct = Matrix2x2::from(
+            [
+                1, 3,
+                7, 9,
             ]
-        };
+        );
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn from_vector() {
-        let test = Matrix3x3::from((Vector3D::from((3, 4, 5)), Vector3D::from((1, 2, 3)), Vector3D::from((4, 5, 6))));
+    fn cofactor() {
+        let test = Matrix3x3::from(
+            [
+                1, 2, 3,
+                4, 5, 6,
+                7, 8, 9,
+            ]
+        ).cofactor();
+
         let correct = Matrix3x3::from(
             [
-                3, 1, 4,
-                4, 2, 5,
-                5, 3, 6,
+                -3,   6, -3,
+                 6, -12,  6,
+                -3,   6, -3,
+            ]
+        );
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn adjugate() {
+        let test = Matrix3x3::from(
+            [
+                1, 2, 3,
+                4, 5, 6,
+                7, 8, 9,
+            ]
+        ).adjugate();
+
+        let correct = Matrix3x3::from(
+            [
+                -3,   6, -3,
+                 6, -12,  6,
+                -3,   6, -3,
             ]
         );
 
@@ -362,6 +446,27 @@ mod tests {
         ).determinant();
 
         let correct = 1.0;
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn inverse() {
+        let test = Matrix3x3::from(
+            [
+                3, 2, 3, 
+                3, 1, 1,
+                2, 2, 3,
+            ]
+        ).inverse().unwrap();
+
+        let correct = Matrix3x3::from(
+            [
+                 1,  0, -1,
+                -7,  3,  6,
+                 4, -2, -3,
+            ]
+        );
 
         assert_eq!(test, correct);
     }
@@ -471,7 +576,63 @@ mod tests {
     #[test]
     fn mul_vector() {
         let test = Matrix3x3::from([1, 2, 3, 4, 5, 6, 7, 8, 9]) * Vector3D::from((1, 2, 3));
-        let correct = Vector3D::from((14, 32, 40));
+        let correct = Vector3D::from((14, 32, 50));
+
+        assert_eq!(test, correct);
+    }
+    
+    #[test]
+    fn from_float() {
+        let test = Matrix3x3::from(
+            [
+                1.0, 2.0, 3.0, 
+                4.0, 5.0, 6.0,
+                7.0, 8.0, 9.0,
+            ]
+        );
+        
+        let correct = Matrix3x3 {
+            data: [
+                1.0, 2.0, 3.0,
+                4.0, 5.0, 6.0,
+                7.0, 8.0, 9.0,
+            ]
+        };
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_integer() {
+        let test = Matrix3x3::from(
+            [
+                1, 2, 3, 
+                4, 5, 6,
+                7, 8, 9,
+            ]
+        );
+
+        let correct = Matrix3x3 {
+            data: [
+                1.0, 2.0, 3.0,
+                4.0, 5.0, 6.0,
+                7.0, 8.0, 9.0,
+            ]
+        };
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_vector() {
+        let test = Matrix3x3::from((Vector3D::from((3, 4, 5)), Vector3D::from((1, 2, 3)), Vector3D::from((4, 5, 6))));
+        let correct = Matrix3x3::from(
+            [
+                3, 1, 4,
+                4, 2, 5,
+                5, 3, 6,
+            ]
+        );
 
         assert_eq!(test, correct);
     }
@@ -479,7 +640,7 @@ mod tests {
     #[test]
     fn index() {
         let test = Matrix3x3::from([1, 2, 3, 4, 5, 6, 7, 8, 9])[(2, 1)];
-        let correct = 7.0;
+        let correct = 8.0;
 
         assert_eq!(test, correct);
     }

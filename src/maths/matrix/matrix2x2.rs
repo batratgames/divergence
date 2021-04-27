@@ -1,8 +1,10 @@
 use std::fmt;
 use std::cmp::{ PartialEq, Eq };
 use std::ops::{ Add, Sub, Mul, Index };
-use crate::maths::Vector2D;
+use crate::maths::{ Vector2D, Complex };
+use super::InverseMatrixError;
 
+#[derive(Copy, Clone)]
 pub struct Matrix2x2 {
     data: [f32; 4]
 }
@@ -12,7 +14,7 @@ impl Matrix2x2 {
         Matrix2x2 {
             data: [
                 0.0, 0.0,
-                0.0, 0.0
+                0.0, 0.0,
             ],
         }
     }
@@ -20,8 +22,8 @@ impl Matrix2x2 {
     pub fn ones() -> Matrix2x2 {
         Matrix2x2 {
             data: [
-                1.0, 1.0, 
-                1.0, 1.0
+                1.0, 1.0,
+                1.0, 1.0,
             ],
         }
     }
@@ -29,8 +31,8 @@ impl Matrix2x2 {
     pub fn diagonal(value: f32) -> Matrix2x2 {
         Matrix2x2 {
             data: [
-                value, 0.0, 
-                0.0, value
+                value, 0.0,
+                0.0, value,
             ]
         }
     }
@@ -48,12 +50,59 @@ impl Matrix2x2 {
         }
     }
 
+    pub fn minor(&self, pos: (usize, usize)) -> f32 {
+        let mut data = 0.0; 
+
+        for i in 0..2 {
+            if i == pos.0 {
+                continue;
+            }
+
+            for j in 0..2 {
+                if j == pos.1 {
+                    continue;
+                }
+
+                data = self[(i, j)];
+            }
+        }
+
+        return data;
+    }
+
+    pub fn cofactor(&self) -> Matrix2x2 {
+        let mut data: [f32; 4] = [ 0.0, 0.0, 0.0, 0.0 ];
+
+        for i in 0..2 {
+            for j in 0..2 {
+                data[i * 2 + j] = (-1_f32).powf((i+j) as f32) * self.minor((i, j));
+            }
+        }
+
+        Matrix2x2::from(data)
+    }
+
+    pub fn adjugate(&self) -> Matrix2x2 {
+        self.cofactor().transpose()
+    }
+
     pub fn determinant(&self) -> f32 {
-        self.data[0] * self.data[3] - self.data[1] * self.data[2]
+        self[(0, 0)] * self.minor((0, 0)) -
+        self[(0, 1)] * self.minor((0, 1))
+    }
+
+    pub fn inverse(&self) -> Result<Matrix2x2, InverseMatrixError> {
+        let determinant = self.determinant();
+
+        if determinant == 0.0 {
+            return Err(InverseMatrixError("Matrix has no inverse"));
+        }
+
+        Ok((1.0 / determinant) * self.adjugate())
     }
 
     pub fn col(&self, i: usize) -> Vector2D {
-        Vector2D::from((self.data[i], self.data[i + 2]))
+        Vector2D::from((self[(0, i)], self[(1, i)]))
     }
 
     pub fn row(&self, i: usize) -> Vector2D {
@@ -65,12 +114,18 @@ impl Add for Matrix2x2 {
     type Output = Matrix2x2;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Matrix2x2 {
-            data: [
-                self.data[0] + rhs.data[0], self.data[1] + rhs.data[1],
-                self.data[2] + rhs.data[2], self.data[3] + rhs.data[3],
-            ]
+        let mut data = [
+            0.0, 0.0,
+            0.0, 0.0,
+        ];
+        
+        for i in 0..2 {
+            for j in 0..2 {
+                data[i * 2 + j] = self[(i, j)] + rhs[(i, j)];
+            }
         }
+        
+        Matrix2x2::from(data)
     }
 }
 
@@ -78,12 +133,18 @@ impl Sub for Matrix2x2 {
     type Output = Matrix2x2;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Matrix2x2 {
-            data: [
-                self.data[0] - rhs.data[0], self.data[1] - rhs.data[1],
-                self.data[2] - rhs.data[2], self.data[3] - rhs.data[3],
-            ]
+        let mut data = [
+            0.0, 0.0,
+            0.0, 0.0,
+        ];
+        
+        for i in 0..2 {
+            for j in 0..2 {
+                data[i * 2 + j] = self[(i, j)] - rhs[(i, j)];
+            }
         }
+        
+        Matrix2x2::from(data)
     }
 }
 
@@ -91,12 +152,7 @@ impl Mul for Matrix2x2 {
     type Output = Matrix2x2;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Matrix2x2 { 
-            data: [
-                self.data[0] * rhs.data[0] + self.data[1] * rhs.data[2], self.data[0] * rhs.data[1] + self.data[1] * rhs.data[3],
-                self.data[2] * rhs.data[0] + self.data[3] * rhs.data[2], self.data[2] * rhs.data[1] + self.data[3] * rhs.data[3]
-            ]
-        }
+        Matrix2x2::from((self * rhs.col(0), self * rhs.col(1)))
     }
 }
 
@@ -104,12 +160,18 @@ impl Mul<Matrix2x2> for i32 {
     type Output = Matrix2x2;
 
     fn mul(self, rhs: Matrix2x2) -> Self::Output {
-        Matrix2x2 {
-            data: [
-                (self as f32) * rhs.data[0], (self as f32) * rhs.data[1],
-                (self as f32) * rhs.data[2], (self as f32) * rhs.data[3]
-            ]
+        let mut data = [
+            0.0, 0.0,
+            0.0, 0.0,
+        ];
+        
+        for i in 0..2 {
+            for j in 0..2 {
+                data[i * 2 + j] = rhs[(i, j)] * (self as f32);
+            }
         }
+        
+        Matrix2x2::from(data)
     }
 }
 
@@ -125,12 +187,18 @@ impl Mul<Matrix2x2> for f32 {
     type Output = Matrix2x2;
 
     fn mul(self, rhs: Matrix2x2) -> Self::Output {
-        Matrix2x2 {
-            data: [
-                self * rhs.data[0], self * rhs.data[1],
-                self * rhs.data[2], self * rhs.data[3]
-            ]
+        let mut data = [
+            0.0, 0.0,
+            0.0, 0.0,
+        ];
+        
+        for i in 0..2 {
+            for j in 0..2 {
+                data[i * 2 + j] = rhs[(i, j)] * self;
+            }
         }
+        
+        Matrix2x2::from(data)
     }
 }
 
@@ -152,10 +220,13 @@ impl Mul<Vector2D> for Matrix2x2 {
 
 impl PartialEq for Matrix2x2 {
     fn eq(&self, rhs: &Self) -> bool {
-        self.data[0] == rhs.data[0] &&
-        self.data[1] == rhs.data[1] &&
-        self.data[2] == rhs.data[2] &&
-        self.data[3] == rhs.data[3]
+        for i in 0..4 {
+            if self.data[i] != rhs.data[i] {
+                return false;
+            }
+        }
+
+        true
     }
 }
 
@@ -164,7 +235,10 @@ impl Eq for Matrix2x2 {}
 impl From<[i32; 4]> for Matrix2x2 {
     fn from(data: [i32; 4]) -> Matrix2x2 {
         Matrix2x2 {
-            data: [data[0] as f32, data[1] as f32, data[2] as f32, data[3] as f32],
+            data: [
+                data[0] as f32, data[1] as f32,
+                data[2] as f32, data[3] as f32
+            ],
         }
     }
 }
@@ -180,7 +254,21 @@ impl From<[f32; 4]> for Matrix2x2 {
 impl From<(Vector2D, Vector2D)> for Matrix2x2 {
     fn from(input: (Vector2D, Vector2D)) -> Matrix2x2 {
         Matrix2x2 {
-            data: [ input.0.x(), input.1.x(), input.0.y(), input.1.y() ],
+            data: [
+                input.0.x(), input.1.x(),
+                input.0.y(), input.1.y()
+            ],
+        }
+    }
+}
+
+impl From<Complex> for Matrix2x2 {
+    fn from(input: Complex) -> Matrix2x2 {
+        Matrix2x2 {
+            data: [
+                input.real(), -input.imaginary(),
+                input.imaginary(), input.real()
+            ]
         }
     }
 }
@@ -266,14 +354,14 @@ mod tests {
         let test = Matrix2x2::from(
             [
                 1, 2, 
-                3, 4
+                3, 4,
             ]
         ).transpose();
 
         let correct = Matrix2x2::from(
             [
                 1, 3,
-                2, 4
+                2, 4,
             ]
         );
 
@@ -281,50 +369,51 @@ mod tests {
     }
 
     #[test]
-    fn from_float() {
-        let test = Matrix2x2::from(
-            [
-                1.0, 2.0, 
-                3.0, 4.0
-            ]
-        );
-
-        let correct = Matrix2x2 {
-            data: [
-                1.0, 2.0,
-                3.0, 4.0
-            ]
-        };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_integer() {
+    fn minor() {
         let test = Matrix2x2::from(
             [
                 1, 2,
-                3, 4
+                3, 4,
             ]
-        );
-        
-        let correct = Matrix2x2 {
-            data: [
-                1.0, 2.0, 
-                3.0, 4.0 
-            ]
-        };
+        ).minor((0, 1));
+
+        let correct = 3.0;
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn from_vector() {
-        let test = Matrix2x2::from((Vector2D::from((3, 4)), Vector2D::from((1, 2))));
+    fn cofactor() {
+        let test = Matrix2x2::from(
+            [
+                1, 2,
+                3, 4,
+            ]
+        ).cofactor();
+
         let correct = Matrix2x2::from(
             [
-                3, 1, 
-                4, 2
+                 4, -3,
+                -2,  1,
+            ]
+        );
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn adjugate() {
+        let test = Matrix2x2::from(
+            [
+                1, 2,
+                3, 4,
+            ]
+        ).adjugate();
+
+        let correct = Matrix2x2::from(
+            [
+                 4, -2,
+                -3,  1,
             ]
         );
 
@@ -335,8 +424,8 @@ mod tests {
     fn determinant() {
         let test = Matrix2x2::from(
             [
-                3, 2, 
-                3, 3
+                3, 2,
+                3, 3,
             ]
         ).determinant();
 
@@ -346,11 +435,30 @@ mod tests {
     }
 
     #[test]
+    fn inverse() {
+        let test = Matrix2x2::from(
+            [
+                3, 2,
+                3, 3,
+            ]
+        ).inverse().unwrap();
+
+        let correct = (1.0 / 3.0) * Matrix2x2::from(
+            [
+                 3, -2,
+                -3,  3,
+            ]
+        );
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
     fn col() {
         let matrix = Matrix2x2::from(
             [
-                1, 2, 
-                3, 4
+                1, 2,
+                3, 4,
             ]
         );
 
@@ -368,8 +476,8 @@ mod tests {
     fn row() {
         let matrix = Matrix2x2::from(
             [
-                1, 2, 
-                3, 4
+                1, 2,
+                3, 4,
             ]
         );
 
@@ -446,10 +554,74 @@ mod tests {
 
         assert_eq!(test, correct);
     }
+    
+    #[test]
+    fn from_float() {
+        let test = Matrix2x2::from(
+            [
+                1.0, 2.0,
+                3.0, 4.0,
+            ]
+        );
+
+        let correct = Matrix2x2 {
+            data: [
+                1.0, 2.0,
+                3.0, 4.0,
+            ]
+        };
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_integer() {
+        let test = Matrix2x2::from(
+            [
+                1, 2,
+                3, 4,
+            ]
+        );
+        
+        let correct = Matrix2x2 {
+            data: [
+                1.0, 2.0,
+                3.0, 4.0,
+            ]
+        };
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_vector() {
+        let test = Matrix2x2::from((Vector2D::from((3, 4)), Vector2D::from((1, 2))));
+        let correct = Matrix2x2::from(
+            [
+                3, 1,
+                4, 2,
+            ]
+        );
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_complex() {
+        let test = Matrix2x2::from(Complex::from((3, 4)));
+        let correct = Matrix2x2::from(
+            [
+                3, -4,
+                4,  3,
+            ]
+        );
+
+        assert_eq!(test, correct);
+    }
 
     #[test]
     fn index() {
-        let test = Matrix2x2::from([1, 2, 3, 4])[(0, 1)];
+        let test = Matrix2x2::from([1, 2, 3, 4])[(1, 0)];
         let correct = 3.0;
 
         assert_eq!(test, correct);
