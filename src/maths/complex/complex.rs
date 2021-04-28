@@ -219,6 +219,15 @@ mod test {
         assert_eq!(test, correct);
     }
 
+    // TODO: 
+    // WRITE MORE TESTS
+    // 
+    // MAKE THEM FOR MULTIPLYING f32's AND COMPLEX NUMBERS
+    // DIVISION AS WELL
+    // 
+    // IMPLEMENT A f32 / Complex METHOD TOO
+    // 
+
     #[test]
     fn div() {
         let test = Complex::from((3, 4)) / Complex::from((1, 1));
