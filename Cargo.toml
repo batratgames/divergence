@@ -8,4 +8,6 @@ edition = "2018"
 
 [dependencies]
 glium = "0.29.1"
+
+[target.'cfg(windows)'.dependencies]
 rodio = "0.13.1"
