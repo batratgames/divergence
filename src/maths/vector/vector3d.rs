@@ -1,6 +1,6 @@
 use std::fmt;
 use std::cmp::{ PartialEq, Eq };
-use std::ops::{ Add, Sub, Mul, Rem };
+use std::ops::{ Add, Sub, Mul, Div, Rem };
 
 pub struct Vector3D {
     x: f32,
@@ -10,7 +10,7 @@ pub struct Vector3D {
 
 impl Vector3D {
     pub fn norm(&self) -> f32 {
-        (self.x * self.x + self.y * self.y + self.z * self.z).powf(1.0 / 2.0)
+        (self.x * self.x + self.y * self.y + self.z * self.z).powf(1. / 2.)
     }
 
     pub fn cross(&self, rhs: Vector3D) -> Vector3D {
@@ -100,11 +100,23 @@ impl Mul<Vector3D> for f32 {
     }
 }
 
-impl Mul<f32> for Vector3D {
+impl<T> Mul<T> for Vector3D where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
     type Output = Self;
 
-    fn mul(self, rhs: f32) -> Self::Output {
-        rhs * self
+    fn mul(self, rhs: T) -> Self::Output {
+        Vector3D::from((self.x * Into::<f32>::into(rhs), self.y * Into::<f32>::into(rhs), self.z * Into::<f32>::into(rhs)))
+    }
+}
+
+impl<T> Div<T> for Vector3D where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
+    type Output = Self;
+
+    fn div(self, rhs: T) -> Self::Output {
+        Vector3D::from((self.x / Into::<f32>::into(rhs), self.y / Into::<f32>::into(rhs), self.z / Into::<f32>::into(rhs)))
     }
 }
 
@@ -117,14 +129,6 @@ impl Mul<Vector3D> for i32 {
             y: (self as f32) * rhs.y,
             z: (self as f32) * rhs.z,
         }
-    }
-}
-
-impl Mul<i32> for Vector3D {
-    type Output = Self;
-
-    fn mul(self, rhs: i32) -> Self::Output {
-        rhs * self
     }
 }
 
@@ -144,22 +148,14 @@ impl PartialEq for Vector3D {
 
 impl Eq for Vector3D {}
 
-impl From<(i32, i32, i32)> for Vector3D {
-    fn from(point: (i32, i32, i32)) -> Vector3D {
+impl<T> From<(T, T, T)> for Vector3D where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
+    fn from(point: (T, T, T)) -> Vector3D {
         Vector3D {
-            x: point.0 as f32,
-            y: point.1 as f32,
-            z: point.2 as f32,
-        }
-    }
-}
-
-impl From<(f32, f32, f32)> for Vector3D {
-    fn from(point: (f32, f32, f32)) -> Vector3D {
-        Vector3D {
-            x: point.0,
-            y: point.1,
-            z: point.2,
+            x: Into::<f32>::into(point.0),
+            y: Into::<f32>::into(point.1),
+            z: Into::<f32>::into(point.2),
         }
     }
 }
@@ -182,7 +178,7 @@ mod tests {
 
     #[test]
     fn norm() {
-        let test = Vector3D::from((5, 4, 3)).norm();
+        let test = Vector3D::from((5., 4., 3.)).norm();
         let correct = 50_f32.sqrt();
 
         assert_eq!(test, correct);
@@ -190,152 +186,128 @@ mod tests {
 
     #[test]
     fn cross() {
-        let test = Vector3D::from((1, 2, 3)).cross(Vector3D::from((3, 2, 1)));
-        let correct = Vector3D::from((-4, 8, -4));
+        let test = Vector3D::from((1., 2., 3.)).cross(Vector3D::from((3., 2., 1.)));
+        let correct = Vector3D::from((-4., 8., -4.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn sum() {
-        let test = Vector3D::from((1, 2, 3)).sum();
-        let correct = 6.0;
+        let test = Vector3D::from((1., 2., 3.)).sum();
+        let correct = 6.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn x() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).x();
-        let correct = 5.0;
+        let test = Vector3D::from((5., 4., 3.)).x();
+        let correct = 5.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn y() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).y();
-        let correct = 4.0;
+        let test = Vector3D::from((5., 4., 3.)).y();
+        let correct = 4.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn z() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).z();
-        let correct = 3.0;
+        let test = Vector3D::from((5., 4., 3.)).z();
+        let correct = 3.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn xy() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).xy();
-        let correct = (5.0, 4.0);
+        let test = Vector3D::from((5., 4., 3.)).xy();
+        let correct = (5., 4.);
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn xz() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).xz();
-        let correct = (5.0, 3.0);
+        let test = Vector3D::from((5., 4., 3.)).xz();
+        let correct = (5., 3.);
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn yz() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).yz();
-        let correct = (4.0, 3.0);
+        let test = Vector3D::from((5., 4., 3.)).yz();
+        let correct = (4., 3.);
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn xyz() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)).xyz();
-        let correct = (5.0, 4.0, 3.0);
+        let test = Vector3D::from((5., 4., 3.)).xyz();
+        let correct = (5., 4., 3.);
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn add() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)) + Vector3D::from((3, 2, 2));
-        let correct = Vector3D::from((8, 6, 5));
+        let test = Vector3D::from((5., 4., 3.)) + Vector3D::from((3., 2., 2.));
+        let correct = Vector3D::from((8., 6., 5.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn sub() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)) - Vector3D::from((3, 2, 2));
-        let correct = Vector3D::from((2, 2, 1));
+        let test = Vector3D::from((5., 4., 3.)) - Vector3D::from((3., 2., 2.));
+        let correct = Vector3D::from((2., 2., 1.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn mul() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)) * Vector3D::from((3, 2, 2));
-        let correct = 29.0;
+        let test = Vector3D::from((5., 4., 3.)) * Vector3D::from((3., 2., 2.));
+        let correct = 29.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn mul_integer_left() {
-        let test = 5 * Vector3D::from((5.0, 4.0, 3.0));
-        let correct = Vector3D::from((25, 20, 15));
+    fn mul_float() {
+        let test = Vector3D::from((5., 4., 3.)) * 5.;
+        let correct = Vector3D::from((25., 20., 15.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn mul_integer_right() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)) * 5;
-        let correct = Vector3D::from((25, 20, 15));
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn mul_float_left() {
-        let test = 5.0 * Vector3D::from((5.0, 4.0, 3.0));
-        let correct = Vector3D::from((25, 20, 15));
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn mul_float_right() {
-        let test = Vector3D::from((5.0, 4.0, 3.0)) * 5.0;
-        let correct = Vector3D::from((25, 20, 15));
+    fn div_float() {
+        let test = Vector3D::from((25., 20., 15.)) / 5.;
+        let correct = Vector3D::from((5., 4., 3.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn rem() {
-        let test = Vector3D::from((1, 2, 3)) % Vector3D::from((3, 2, 1));
-        let correct = Vector3D::from((-4, 8, -4));
+        let test = Vector3D::from((1., 2., 3.)) % Vector3D::from((3., 2., 1.));
+        let correct = Vector3D::from((-4., 8., -4.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn from_float() {
-        let test = Vector3D::from((5.0, 4.0, 3.0));
-        let correct = Vector3D { x: 5.0, y: 4.0, z: 3.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_integer() {
-        let test = Vector3D::from((5, 4, 3));
-        let correct = Vector3D { x: 5.0, y: 4.0, z: 3.0 };
+    fn from() {
+        let test = Vector3D::from((5., 4., 3.));
+        let correct = Vector3D { x: 5., y: 4., z: 3. };
 
         assert_eq!(test, correct);
     }

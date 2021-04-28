@@ -1,6 +1,6 @@
 use std::fmt;
 use std::cmp::{ PartialEq, Eq };
-use std::ops::{ Add, Sub, Mul };
+use std::ops::{ Add, Sub, Mul, Div };
 
 pub struct Vector2D {
     x: f32,
@@ -9,7 +9,7 @@ pub struct Vector2D {
 
 impl Vector2D {
     pub fn norm(&self) -> f32 {
-        (self.x * self.x + self.y * self.y).powf(1.0 / 2.0)
+        (self.x * self.x + self.y * self.y).powf(1. / 2.)
     }
 
     pub fn sum(&self) -> f32 {
@@ -59,41 +59,23 @@ impl Mul for Vector2D {
     }
 }
 
-impl Mul<Vector2D> for f32 {
-    type Output = Vector2D;
-
-    fn mul(self, rhs: Vector2D) -> Self::Output {
-        Vector2D {
-            x: self * rhs.x,
-            y: self * rhs.y,
-        }
-    }
-}
-
-impl Mul<f32> for Vector2D {
+impl<T> Mul<T> for Vector2D where 
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
     type Output = Self;
 
-    fn mul(self, rhs: f32) -> Self::Output {
-        rhs * self
+    fn mul(self, rhs: T) -> Self::Output {
+        Vector2D::from((self.x * Into::<f32>::into(rhs), self.y * Into::<f32>::into(rhs)))
     }
 }
 
-impl Mul<Vector2D> for i32 {
-    type Output = Vector2D;
-
-    fn mul(self, rhs: Vector2D) -> Self::Output {
-        Vector2D {
-            x: (self as f32) * rhs.x,
-            y: (self as f32) * rhs.y,
-        }
-    }
-}
-
-impl Mul<i32> for Vector2D {
+impl<T> Div<T> for Vector2D where 
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
     type Output = Self;
 
-    fn mul(self, rhs: i32) -> Self::Output {
-        rhs * self
+    fn div(self, rhs: T) -> Self::Output {
+        Vector2D::from((self.x / Into::<f32>::into(rhs), self.y / Into::<f32>::into(rhs)))
     }
 }
 
@@ -105,20 +87,13 @@ impl PartialEq for Vector2D {
 
 impl Eq for Vector2D {}
 
-impl From<(i32, i32)> for Vector2D {
-    fn from(point: (i32, i32)) -> Vector2D {
+impl<T> From<(T, T)> for Vector2D where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
+    fn from(point: (T, T)) -> Vector2D {
         Vector2D {
-            x: point.0 as f32,
-            y: point.1 as f32,
-        }
-    }
-}
-
-impl From<(f32, f32)> for Vector2D {
-    fn from(point: (f32, f32)) -> Vector2D {
-        Vector2D {
-            x: point.0,
-            y: point.1,
+            x: Into::<f32>::into(point.0),
+            y: Into::<f32>::into(point.1),
         }
     }
 }
@@ -141,112 +116,88 @@ mod tests {
 
     #[test]
     fn norm() {
-        let test = Vector2D::from((3, 4)).norm();
-        let correct = 5.0;
+        let test = Vector2D::from((3., 4.)).norm();
+        let correct = 5.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn sum() {
-        let test = Vector2D::from((3,4)).sum();
-        let correct = 7.0;
+        let test = Vector2D::from((3., 4.)).sum();
+        let correct = 7.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn x() {
-        let test = Vector2D::from((5.0, 4.0)).x();
-        let correct = 5.0;
+        let test = Vector2D::from((5., 4.)).x();
+        let correct = 5.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn y() {
-        let test = Vector2D::from((5.0, 4.0)).y();
-        let correct = 4.0;
+        let test = Vector2D::from((5., 4.)).y();
+        let correct = 4.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn xy() {
-        let test = Vector2D::from((5.0, 4.0)).xy();
-        let correct = (5.0, 4.0);
+        let test = Vector2D::from((5., 4.)).xy();
+        let correct = (5., 4.);
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn add() {
-        let test = Vector2D::from((5.0, 4.0)) + Vector2D::from((3, 2));
-        let correct = Vector2D::from((8, 6));
+        let test = Vector2D::from((5., 4.)) + Vector2D::from((3., 2.));
+        let correct = Vector2D::from((8., 6.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn sub() {
-        let test = Vector2D::from((5.0, 4.0)) - Vector2D::from((3, 2));
-        let correct = Vector2D::from((2, 2));
+        let test = Vector2D::from((5., 4.)) - Vector2D::from((3., 2.));
+        let correct = Vector2D::from((2., 2.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn mul() {
-        let test = Vector2D::from((5.0, 4.0)) * Vector2D::from((3, 2));
-        let correct = 23.0;
+        let test = Vector2D::from((5., 4.)) * Vector2D::from((3., 2.));
+        let correct = 23.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn mul_integer_left() {
-        let test = 5 * Vector2D::from((5.0, 4.0));
-        let correct = Vector2D::from((25, 20));
+    fn mul_float() {
+        let test = Vector2D::from((5., 4.)) * 5.;
+        let correct = Vector2D::from((25., 20.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn mul_integer_right() {
-        let test = Vector2D::from((5.0, 4.0)) * 5;
-        let correct = Vector2D::from((25, 20));
+    fn div_float() {
+        let test = Vector2D::from((25., 20.)) / 5.;
+        let correct = Vector2D::from((5., 4.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn mul_float_left() {
-        let test = 5.0 * Vector2D::from((5.0, 4.0));
-        let correct = Vector2D::from((25, 20));
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn mul_float_right() {
-        let test = Vector2D::from((5.0, 4.0)) * 5.0;
-        let correct = Vector2D::from((25, 20));
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_float() {
-        let test = Vector2D::from((5.0, 4.0));
-        let correct = Vector2D { x: 5.0, y: 4.0 };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_integer() {
-        let test = Vector2D::from((5, 4));
-        let correct = Vector2D { x: 5.0, y: 4.0 };
+    fn from() {
+        let test = Vector2D::from((5., 4.));
+        let correct = Vector2D { x: 5., y: 4. };
 
         assert_eq!(test, correct);
     }

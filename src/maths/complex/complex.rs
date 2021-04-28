@@ -16,9 +16,9 @@ impl Complex {
     /// ```
     /// # use divergence::maths::Complex;
     /// #
-    /// let z = Complex::from((3, 4));
+    /// let z = Complex::from((3., 4.));
     /// let a = z.real();
-    /// # assert_eq!(a, 3.0);
+    /// # assert_eq!(a, 3.);
     /// ```
     ///
     pub fn real(&self) -> f32 {
@@ -30,7 +30,7 @@ impl Complex {
     }
 
     pub fn norm(&self) -> f32 {
-        (self.real * self.real + self.imaginary * self.imaginary).powf(1.0 / 2.0)
+        (self.real * self.real + self.imaginary * self.imaginary).powf(1. / 2.)
     }
 
     pub fn argument(&self) -> f32 {
@@ -58,39 +58,17 @@ impl Mul for Complex {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Complex::from([self.norm() * rhs.norm(), self.argument() + rhs.argument()])
+        Complex::from((self.real * rhs.real - self.imaginary * rhs.imaginary, self.real * rhs.imaginary + self.imaginary * rhs.real))
     }
 }
 
-impl Mul<i32> for Complex {
+impl<T> Mul<T> for Complex where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
     type Output = Self;
 
-    fn mul(self, rhs: i32) -> Self::Output {
-        Complex::from((self.real() * (rhs as f32), self.imaginary() * (rhs as f32)))
-    }
-}
-
-impl Mul<Complex> for i32 {
-    type Output = Complex;
-
-    fn mul(self, rhs: Complex) -> Self::Output {
-        rhs * self
-    }
-}
-
-impl Mul<f32> for Complex {
-    type Output = Self;
-
-    fn mul(self, rhs: f32) -> Self::Output {
-        Complex::from((self.real() * rhs, self.imaginary() * rhs))
-    }
-}
-
-impl Mul<Complex> for f32 {
-    type Output = Complex;
-
-    fn mul(self, rhs: Complex) -> Self::Output {
-        rhs * self
+    fn mul(self, rhs: T) -> Self::Output {
+        Complex::from((self.real() * Into::<f32>::into(rhs), self.imaginary() * Into::<f32>::into(rhs)))
     }
 }
 
@@ -98,23 +76,17 @@ impl Div for Complex {
     type Output = Self;
     
     fn div(self, rhs: Complex) -> Self::Output {
-        Complex::from([self.norm() / rhs.norm(), self.argument() - rhs.argument()])
+        Complex::from((self.real * rhs.real + self.imaginary * rhs.imaginary, self.imaginary * rhs.real - self.real * rhs.imaginary)) / (rhs.real * rhs.real + rhs.imaginary * rhs.imaginary)
     }
 }
 
-impl Div<f32> for Complex {
+impl<T> Div<T> for Complex where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
     type Output = Self;
 
-    fn div(self, rhs: f32) -> Self::Output {
-        Complex::from((self.real() / rhs, self.imaginary() / rhs))
-    }
-}
-
-impl Div<Complex> for f32 {
-    type Output = Complex;
-
-    fn div(self, rhs: Complex) -> Self::Output {
-        rhs / self
+    fn div(self, rhs: T) -> Self::Output {
+        Complex::from((self.real() / Into::<f32>::into(rhs), self.imaginary() / Into::<f32>::into(rhs)))
     }
 }
 
@@ -126,24 +98,14 @@ impl PartialEq for Complex {
 
 impl Eq for Complex {}
 
-impl From<(i32, i32)> for Complex {
-    fn from(data: (i32, i32)) -> Complex {
-        Complex::from((data.0 as f32, data.1 as f32))
-    }
-}
-
-impl From<(f32, f32)> for Complex {
-    fn from(data: (f32, f32)) -> Complex {
+impl<T> From<(T, T)> for Complex where
+    f32: std::convert::From<T>,
+    T: std::convert::From<f32> + Copy {
+    fn from(data: (T, T)) -> Complex {
         Complex {
-            real: data.0,
-            imaginary: data.1,
+            real: Into::<f32>::into(data.0),
+            imaginary: Into::<f32>::into(data.1),
         }
-    }
-}
-
-impl From<[f32; 2]> for Complex {
-    fn from(data: [f32; 2]) -> Complex {
-        Complex::from((data[0] * data[1].cos(), data[0] * data[1].sin()))
     }
 }
 
@@ -165,105 +127,88 @@ mod test {
 
     #[test]
     fn real() {
-        let test = Complex::from((3, 4)).real();
-        let correct = 3.0;
+        let test = Complex::from((3., 4.)).real();
+        let correct = 3.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn imaginary() {
-        let test = Complex::from((3, 4)).imaginary();
-        let correct = 4.0;
+        let test = Complex::from((3., 4.)).imaginary();
+        let correct = 4.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn norm() {
-        let test = Complex::from((3, 4)).norm();
-        let correct = 5.0;
+        let test = Complex::from((3., 4.)).norm();
+        let correct = 5.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn argument() {
-        let test = Complex::from((3, 3)).argument();
-        let correct = (1.0 / 2_f32.sqrt()).asin() - 0.0000001;
+        let test = Complex::from((3., 0.)).argument();
+        let correct = 0.;
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn add() {
-        let test = Complex::from((3, 4)) + Complex::from((1, 1));
-        let correct = Complex::from((4, 5));
+        let test = Complex::from((3., 4.)) + Complex::from((1., 1.));
+        let correct = Complex::from((4., 5.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn sub() {
-        let test = Complex::from((3, 4)) - Complex::from((1, 1));
-        let correct = Complex::from((2, 3));
+        let test = Complex::from((3., 4.)) - Complex::from((1., 1.));
+        let correct = Complex::from((2., 3.));
 
         assert_eq!(test, correct);
     }
 
     #[test]
     fn mul() {
-        let test = Complex::from((3, 4)) * Complex::from((1, 1));
-        let correct = Complex::from((-1, 7));
+        let test = Complex::from((3., 4.)) * Complex::from((1., 1.));
+        let correct = Complex::from((-1., 7.));
 
         assert_eq!(test, correct);
     }
 
-    // TODO: 
-    // WRITE MORE TESTS
-    // 
-    // MAKE THEM FOR MULTIPLYING f32's AND COMPLEX NUMBERS
-    // DIVISION AS WELL
-    // 
-    // IMPLEMENT A f32 / Complex METHOD TOO
-    // 
+    #[test]
+    fn mul_float() {
+        let test = Complex::from((3., 4.)) * 5.;
+        let correct = Complex::from((15., 20.));
+
+        assert_eq!(test, correct);
+    }
 
     #[test]
     fn div() {
-        let test = Complex::from((3, 4)) / Complex::from((1, 1));
+        let test = Complex::from((3., 4.)) / Complex::from((1., 1.));
         let correct = Complex::from((3.5, 0.5));
 
         assert_eq!(test, correct);
     }
 
     #[test]
-    fn from_integer() {
-        let test = Complex::from((3, 4));
-        let correct = Complex {
-            real: 3.0,
-            imaginary: 4.0,
-        };
-
-        assert_eq!(test, correct);
+    fn div_float() {
+        let test = Complex::from((0., 1.)) / 2.;
+        let correct = Complex::from((0., 0.5));
     }
 
     #[test]
-    fn from_float() {
-        let test = Complex::from((3.0, 4.0));
+    fn from_tuple() {
+        let test = Complex::from((3., 4.));
         let correct = Complex {
-            real: 3.0,
-            imaginary: 4.0,
-        };
-
-        assert_eq!(test, correct);
-    }
-
-    #[test]
-    fn from_list() {
-        let test = Complex::from([3.0, std::f32::consts::PI / 2.0]);
-        let correct = Complex {
-            real: 0.0,
-            imaginary: 3.0,
+            real: 3.,
+            imaginary: 4.,
         };
 
         assert_eq!(test, correct);
