@@ -9,6 +9,18 @@ pub struct Complex {
 }
 
 impl Complex {
+    /// This will return the real component of the `Complex` number
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use divergence::maths::Complex;
+    /// #
+    /// let z = Complex::from((3, 4));
+    /// let a = z.real();
+    /// # assert_eq!(a, 3.0);
+    /// ```
+    ///
     pub fn real(&self) -> f32 {
         self.real
     }
