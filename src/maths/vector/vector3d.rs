@@ -2,6 +2,7 @@ use std::fmt;
 use std::cmp::{ PartialEq, Eq };
 use std::ops::{ Add, Sub, Mul, Div, Rem };
 
+#[derive(Copy, Clone)]
 pub struct Vector3D {
     x: f32,
     y: f32,
