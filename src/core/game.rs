@@ -1,121 +1,48 @@
-/*
-use glium;
-use glium::glutin;
-//use super::super::graphics::renderer::vertex::Vertex;
+use gl;
+
 pub trait Game {
-    fn run(&self, title: &str, width: f32, height: f32) {
-        let event_loop = glutin::event_loop::EventLoop::new();
-        let wb = glutin::window::WindowBuilder::new()
-            .with_inner_size(glium::glutin::dpi::LogicalSize::new(width, height))
-            .with_title(title);
-        let cb = glutin::ContextBuilder::new();
-        let display = glium::Display::new(wb, cb, &event_loop).unwrap();
+    const title: &'static str;
+    const width: u32;
+    const height: u32;
 
-        event_loop.run(move |ev, _, control_flow| {
-            // Game logic
-            self.update();
+    pub fn run(&self) {
+        let sdl = sdl2::init().unwrap();
+        let video_subsystem = sdl.video().unwrap();
 
-            // Renderer
-            let mut target = display.draw();
+        let gl_attr = video_subsystem.gl_attr();
+        gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
+        gl_attr.set_context_version(3, 3);
 
-            self.render(&mut target);
+        let window = video_subsystem
+            .window(Self::title, Self::width, Self::height)
+            .opengl()
+            .resizable()
+            .build()
+            .unwrap();
+        
+        let _gl_context = window.gl_create_context().unwrap();
+        let _gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-            target.finish().unwrap();
-    
-            let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
-            
-            *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
-            
-            match ev {
-                glutin::event::Event::WindowEvent { event, .. } => match event {
-                    glutin::event::WindowEvent::CloseRequested => {
-                        *control_flow = glutin::event_loop::ControlFlow::Exit;
-                        return;
-                    },
-                    _ => return,
-                },
-                _ => (),
+        self.init();
+
+        let mut event_pump = sdl.event_pump().unwrap();
+
+        'main: loop {
+            for event in event_pump.poll_iter() {
+                // Handle user input here
+                match event {
+                    sdl2::event::Event::Quit { .. } => break 'main,
+                    _ => {}
+                }
             }
-        });
-    }
 
-    fn update(&self);
+            self.render();
 
-    fn render(&self, frame: &mut glium::Frame);
-}
-*/
-/*
-impl<'a> Window<'a> {
-    fn new(title: &'a str, dimensions: (f32, f32)) -> Window<'a> {
-        let mut event_loop = glutin::event_loop::EventLoop::new();
-        let wb = glutin::window::WindowBuilder::new()
-            .with_inner_size(glium::glutin::dpi::LogicalSize::new(dimensions.0, dimensions.1))
-            .with_title(title);
-        let cb = glutin::ContextBuilder::new();
-        let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-
-        Window {
-            title,
-            dimensions,
-            event_loop,
-            display,
+            window.gl_swap_window();
         }
     }
 
-    fn run(&self) {
-        let vertex1 = Vertex { position: [ -0.5, -0.5  ] };
-        let vertex2 = Vertex { position: [  0.0,  0.5  ] };
-        let vertex3 = Vertex { position: [  0.5, -0.25 ] };
-        let shape = vec![vertex1, vertex2, vertex3];
-    
-        let vertex_shader_src = r#"
-            #version 140
-    
-            in vec2 position;
-    
-            void main() {
-                gl_Position = vec4(position, 0.0, 1.0);
-            }
-        "#;
-    
-        let fragment_shader_src = r#"
-            #version 140
-    
-            out vec4 color;
-    
-            void main() {
-                color = vec4(1.0, 0.0, 0.0, 1.0);
-            }
-        "#;
-
-        let vertex_buffer = glium::VertexBuffer::new(&self.display, &shape).unwrap();
-        let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
-    
-        let program = glium::Program::from_source(&self.display, vertex_shader_src, fragment_shader_src, None).unwrap();
-
-        self.event_loop.run(move |ev, _, control_flow| {
-            let mut target = self.display.draw();
-            target.clear_color(0.0, 0.0, 1.0, 1.0);
-    
-            target.draw(&vertex_buffer, &indices, &program, &glium::uniforms::EmptyUniforms, &Default::default()).unwrap();
-    
-            target.finish().unwrap();
-    
-            let next_frame_time = std::time::Instant::now() + std::time::Duration::from_nanos(16_666_667);
-            
-            *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
-            
-            match ev {
-                glutin::event::Event::WindowEvent { event, .. } => match event {
-                    glutin::event::WindowEvent::CloseRequested => {
-                        *control_flow = glutin::event_loop::ControlFlow::Exit;
-                        return;
-                    },
-                    _ => return,
-                },
-                _ => (),
-            }
-        });
-    }
+    pub fn init(&self);
+    pub fn update(&self);
+    pub fn render(&self);
 }
-*/

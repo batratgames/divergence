@@ -1,4 +1,6 @@
-pub use glium;
+pub use sdl2;
+pub use gl;
+pub use lazy_static;
 
 pub mod audio;
 pub mod core;

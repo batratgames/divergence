@@ -7,7 +7,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-glium = "0.29.1"
+gl = "0.14.0"
+lazy_static = "1.4.0"
+
+[dependencies.sdl2]
+version = "0.34.5"
+features = [ "bundled", "static-link" ]
 
 [target.'cfg(windows)'.dependencies]
 rodio = "0.13.1"
