@@ -1,7 +1,7 @@
 use std::fmt;
 use std::cmp::{ PartialEq, Eq };
 use std::ops::{ Add, Sub, Mul, Div, Index };
-use crate::maths::{ Vector4D, Matrix3x3 };
+use crate::maths::{ Vector4D, Matrix3x3, Quaternion };
 use super::InverseMatrixError;
 
 #[derive(Copy, Clone)]
@@ -274,6 +274,19 @@ impl From<(Vector4D, Vector4D, Vector4D, Vector4D)> for Matrix4x4 {
                 input.0.z(), input.1.z(), input.2.z(), input.3.z(),
                 input.0.w(), input.1.w(), input.2.w(), input.3.w(),
             ],
+        }
+    }
+}
+
+impl From<Quaternion> for Matrix4x4 {
+    fn from(input: Quaternion) -> Matrix4x4 {
+        Matrix4x4 {
+            data: [
+                input.r(), -input.i(), -input.j(), -input.k(),
+                input.i(),  input.r(), -input.k(),  input.j(),
+                input.j(),  input.k(),  input.r(), -input.i(),
+                input.k(), -input.j(),  input.i(),  input.r(),
+            ]
         }
     }
 }
@@ -723,6 +736,21 @@ mod tests {
                 4., 2., 5., 4.,
                 5., 3., 6., 3.,
                 6., 4., 7., 2.,
+            ]
+        );
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn from_quaternion() {
+        let test = Matrix4x4::from(Quaternion::from((1., 2., 3., 4.)));
+        let correct = Matrix4x4::from(
+            [
+                1., -2., -3., -4.,
+                2.,  1., -4.,  3.,
+                3.,  4.,  1., -2.,
+                4., -3.,  2.,  1.,
             ]
         );
 
