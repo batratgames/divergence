@@ -213,6 +213,8 @@ mod test {
     fn div_float() {
         let test = Complex::from((0., 1.)) / 2.;
         let correct = Complex::from((0., 0.5));
+
+        assert_eq!(test, correct);
     }
 
     #[test]
