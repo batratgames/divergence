@@ -239,4 +239,20 @@ mod test {
 
         assert_eq!(test, correct);
     }
+
+    #[test]
+    fn mul_float() {
+        let test = Quaternion::from((1., 2., 3., 4.)) * 5.;
+        let correct = Quaternion::from((5., 10., 15., 20.));
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn div_float() {
+        let test = Quaternion::from((5., 10., 15., 20.)) / 5.;
+        let correct = Quaternion::from((1., 2., 3., 4.));
+
+        assert_eq!(test, correct);
+    }
 }
