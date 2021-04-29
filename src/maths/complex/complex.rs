@@ -36,6 +36,10 @@ impl Complex {
     pub fn argument(&self) -> f32 {
         (self.imaginary / self.real).atan()
     }
+
+    pub fn conjugate(&self) -> Complex {
+        Complex::from((self.real, -self.imaginary))
+    }
 }
 
 impl Add for Complex {
@@ -153,6 +157,14 @@ mod test {
     fn argument() {
         let test = Complex::from((3., 0.)).argument();
         let correct = 0.;
+
+        assert_eq!(test, correct);
+    }
+
+    #[test]
+    fn conjugate() {
+        let test = Complex::from((3., 4.)).conjugate();
+        let correct = Complex::from((3., -4.));
 
         assert_eq!(test, correct);
     }
